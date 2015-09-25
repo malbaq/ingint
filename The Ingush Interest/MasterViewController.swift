@@ -26,6 +26,24 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
+        
+        let urlPath = "http://www.telize.com/geoip"
+        
+        let url = NSURL(string: urlPath)
+        
+        let session = NSURLSession.sharedSession()
+        
+        let task = session.dataTaskWithURL(url!, completionHandler: { data, response, error -> Void in
+            if (error != nil) {
+                println(error)
+            } else {
+                let jsonResult = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.MutableContainers, error: nil) as! NSDictionary
+                println(jsonResult)
+            }
+        })
+        
+        task.resume()
+        
         if let split = self.splitViewController {
             let controllers = split.viewControllers
             self.detailViewController = controllers[controllers.count-1].topViewController as? DetailViewController
