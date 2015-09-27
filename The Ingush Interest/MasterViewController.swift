@@ -8,6 +8,7 @@
 
 import UIKit
 import CoreData
+var activeItem:String = ""
 
 class MasterViewController: UITableViewController, NSFetchedResultsControllerDelegate {
 
@@ -27,7 +28,11 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        let urlPath = "http://www.telize.com/geoip"
+        var appDel:AppDelegate = UIApplication.sharedApplication().delegate as! AppDelegate
+        var context:NSManagedObjectContext = appDel.managedObjectContext!
+        
+        
+        let urlPath = "https://www.googleapis.com/blogger/v3/blogs/2397842122496465803/posts?key=AIzaSyAiaR_HPwuaHp15rGbеvbtVoO5gyycPVcg"
         
         let url = NSURL(string: urlPath)
         
@@ -37,8 +42,49 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
             if (error != nil) {
                 println(error)
             } else {
+                
+                var request = NSFetchRequest(entityName: "BlogItems")
+                request.returnsObjectsAsFaults = false
+                var results = context.executeFetchRequest(request, error: nil)
+                
+                for result in results! {
+                    //here to manage what is in DB
+                    context.deleteObject(result as! NSManagedObject)
+                    context.save(nil)
+                }
+                
                 let jsonResult = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.MutableContainers, error: nil) as! NSDictionary
-                println(jsonResult)
+                
+                var items = [[String:String]()]
+                
+                var item:AnyObject
+                
+                var authorDictionary:AnyObject
+                
+                var i:Int
+                
+                var newBlogItem:NSManagedObject
+                
+                for i = 0; i < jsonResult["items"]!.count; i++ {
+                    items.append([String:String]())
+                    item = jsonResult["items"]![i] as! NSDictionary
+                    items[i]["content"] = item["content"] as! NSString as String
+                    items[i]["title"] = item["title"] as! NSString as String
+                    items[i]["datePublished"] = item["published"] as! NSString as String
+                    authorDictionary = item["author"] as! NSDictionary
+                    items[i]["author"] = authorDictionary["displayName"] as! NSString as String
+                    
+                    newBlogItem = NSEntityDescription.insertNewObjectForEntityForName("BlogItems", inManagedObjectContext: context) as! NSManagedObject
+                    newBlogItem.setValue(items[i]["author"], forKey: "author")
+                    newBlogItem.setValue(items[i]["title"], forKey: "title")
+                    newBlogItem.setValue(items[i]["content"], forKey: "content")
+                    newBlogItem.setValue(items[i]["datePublished"], forKey: "datePublished")
+                    context.save(nil)
+                }
+                
+                request = NSFetchRequest(entityName: "BlogItems")
+                request.returnsObjectsAsFaults = false
+                results = context.executeFetchRequest(request, error: nil)
             }
         })
         
@@ -79,6 +125,10 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
         if segue.identifier == "showDetail" {
             if let indexPath = self.tableView.indexPathForSelectedRow() {
+                
+                let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
+                activeItem = object.valueForKey("content")!.description
+
             
                 let controller = (segue.destinationViewController as! UINavigationController).topViewController as! DetailViewController
 
@@ -91,19 +141,20 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
     // MARK: - Table View
 
     override func numberOfSectionsInTableView(tableView: UITableView) -> Int {
-        return 1
+        return self.fetchedResultsController.sections?.count ?? 0
     }
-
+    
     override func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return 3
+        let sectionInfo = self.fetchedResultsController.sections![section] as! NSFetchedResultsSectionInfo
+        return sectionInfo.numberOfObjects
     }
-
+    
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("Cell", forIndexPath: indexPath) as! UITableViewCell
-        cell.textLabel?.text = "Blog Item"
+        self.configureCell(cell, atIndexPath: indexPath)
         return cell
     }
-
+    
     override func tableView(tableView: UITableView, canEditRowAtIndexPath indexPath: NSIndexPath) -> Bool {
         // Return false if you do not want the specified item to be editable.
         return true
@@ -126,7 +177,8 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
 
     func configureCell(cell: UITableViewCell, atIndexPath indexPath: NSIndexPath) {
             let object = self.fetchedResultsController.objectAtIndexPath(indexPath) as! NSManagedObject
-        cell.textLabel!.text = object.valueForKey("timeStamp")!.description
+        cell.textLabel!.text = object.valueForKey("title")!.description
+        cell.detailTextLabel!.text = object.valueForKey("author")!.description
     }
 
     // MARK: - Fetched results controller
@@ -138,14 +190,14 @@ class MasterViewController: UITableViewController, NSFetchedResultsControllerDel
         
         let fetchRequest = NSFetchRequest()
         // Edit the entity name as appropriate.
-        let entity = NSEntityDescription.entityForName("Event", inManagedObjectContext: self.managedObjectContext!)
+        let entity = NSEntityDescription.entityForName("BlogItems", inManagedObjectContext: self.managedObjectContext!)
         fetchRequest.entity = entity
         
         // Set the batch size to a suitable number.
         fetchRequest.fetchBatchSize = 20
         
         // Edit the sort key as appropriate.
-        let sortDescriptor = NSSortDescriptor(key: "timeStamp", ascending: false)
+        let sortDescriptor = NSSortDescriptor(key: "datePublished", ascending: false)
         let sortDescriptors = [sortDescriptor]
         
         fetchRequest.sortDescriptors = [sortDescriptor]

@@ -3,7 +3,7 @@
     <entity name="BlogItems" syncable="YES">
         <attribute name="author" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="content" optional="YES" attributeType="String" syncable="YES"/>
-        <attribute name="publishedDate" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="datePublished" optional="YES" attributeType="String" syncable="YES"/>
         <attribute name="title" optional="YES" attributeType="String" syncable="YES"/>
     </entity>
     <entity name="Event">
@@ -13,7 +13,7 @@
         <userInfo/>
     </entity>
     <elements>
-        <element name="Event" positionX="261" positionY="189" width="128" height="60"/>
         <element name="BlogItems" positionX="279" positionY="216" width="128" height="105"/>
+        <element name="Event" positionX="261" positionY="189" width="128" height="60"/>
     </elements>
 </model>
